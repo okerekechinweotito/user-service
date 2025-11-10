@@ -1,26 +1,30 @@
 import { createFactory } from "hono/factory";
 import { customLogger } from "../utils/logger.ts";
-import { checkDbHealth } from "../services/db.service";
+import { getHealthStatus } from "../services/health.service";
 
 const factory = createFactory();
 
 export const get_health = factory.createHandlers(async (c) => {
   try {
-    const dbStatus = await checkDbHealth();
-    const overallStatus = dbStatus ? "ok" : "degraded";
-    const statusCode = dbStatus ? 200 : 500;
+    const healthStatus = await getHealthStatus();
+    const statusCode =
+      healthStatus.status === "down"
+        ? 503
+        : healthStatus.status === "degraded"
+        ? 200
+        : 200;
 
-    return c.json(
-      {
-        status: overallStatus,
-        service: "user-service",
-        database: dbStatus ? "ok" : "not ok",
-        timestamp: new Date().toISOString(),
-      },
-      statusCode
-    );
+    return c.json(healthStatus, statusCode);
   } catch (error) {
     customLogger(error, "get_health");
-    return c.json({ status: 500, message: "Something went wrong" }, 500);
+    return c.json(
+      {
+        status: "down",
+        error: "HEALTH_CHECK_FAILED",
+        message: "Failed to perform health check",
+        timestamp: new Date().toISOString(),
+      },
+      503
+    );
   }
 });
