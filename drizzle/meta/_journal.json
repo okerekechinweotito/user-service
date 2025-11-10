@@ -15,6 +15,20 @@
       "when": 1762731385125,
       "tag": "0001_concerned_medusa",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1762780714384,
+      "tag": "0002_eminent_spot",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1762780978768,
+      "tag": "0003_lyrical_wasp",
+      "breakpoints": true
     }
   ]
 }

@@ -1,28 +1,46 @@
 import { z } from "zod";
 
-export const loginRequestSchema = z.object({
-  email: z.email(),
-  password: z.string().min(8),
-});
+export const UserPreferenceSchema = z
+  .object({
+    email_enabled: z.boolean().default(true),
+    push_enabled: z.boolean().default(true),
+    language: z.enum(["en", "es", "fr"]).default("en"),
+    email_frequency: z.number().int().min(1).max(10080).default(1440), // max 1 week in minutes
+    push_frequency: z.number().int().min(1).max(10080).default(1440), // max 1 week in minutes
+  })
+  .strict(); // This ensures no extra properties are allowed
 
-export const refreshTokenRequestSchema = z.object({
-  refresh_token: z.string(),
-});
+export const loginRequestSchema = z
+  .object({
+    email: z.string().email("Invalid email format"),
+    password: z.string().min(8, "Password must be at least 8 characters"),
+  })
+  .strict();
 
-export const registerRequestSchema = z.object({
-  email: z.email(),
-  password: z.string().min(8, "Password must be at least 6 characters long"),
-  first_name: z.string().optional(),
-  last_name: z.string().optional(),
-});
+export const refreshTokenRequestSchema = z
+  .object({
+    refresh_token: z.string(),
+  })
+  .strict();
+
+export const registerRequestSchema = z
+  .object({
+    email: z.string().email("Invalid email format"),
+    password: z.string().min(8, "Password must be at least 8 characters"),
+    name: z.string().min(2, "Name must be at least 2 characters"),
+    push_token: z.string().optional(),
+    preferences: UserPreferenceSchema,
+  })
+  .strict();
 
 // Response schemas
 export const registerResponseDataSchema = z.object({
   user_id: z.string(),
-  email: z.email().nullable(),
-  first_name: z.string().nullable(),
-  last_name: z.string().nullable(),
-  created_at: z.date().nullable(),
+  email: z.string().email(),
+  name: z.string(),
+  push_token: z.string().optional().nullable(),
+  preferences: UserPreferenceSchema,
+  created_at: z.date(),
 });
 
 export const registerResponseSchema = z.union([
@@ -50,6 +68,9 @@ export const loginResponseDataSchema = z
   .object({
     user_id: z.string(),
     email: z.email().nullable(),
+    name: z.string(),
+    push_token: z.string().optional().nullable(),
+    preferences: UserPreferenceSchema,
   })
   .merge(authTokensResponseSchema);
 
@@ -68,12 +89,13 @@ export const loginResponseSchema = z.union([
 
 export const validateResponseDataSchema = z.object({
   id: z.string(),
-  email: z.email().nullable(),
-  first_name: z.string().nullable(),
-  last_name: z.string().nullable(),
+  email: z.string().email(),
+  name: z.string(),
+  push_token: z.string().optional().nullable(),
+  preferences: UserPreferenceSchema,
   is_active: z.boolean(),
-  created_at: z.date().nullable(),
-  updated_at: z.date().nullable(),
+  created_at: z.date(),
+  updated_at: z.date(),
   last_login: z.date().nullable(),
   permissions: z.array(z.string()),
 });
@@ -103,19 +125,47 @@ export const logoutResponseSchema = z.union([
   }),
 ]);
 
-export const logoutRequestSchema = z.object({
-  email: z.email(),
-  password: z.string().min(8),
-});
+export const logoutRequestSchema = z
+  .object({
+    email: z.email(),
+    password: z.string().min(8),
+  })
+  .strict();
 
-export const deleteUserRequestSchema = z.object({
-  email: z.email(),
-  password: z.string().min(8),
-});
+export const deleteUserRequestSchema = z
+  .object({
+    email: z.email(),
+    password: z.string().min(8),
+  })
+  .strict();
 
-export const updateUserRequestSchema = z.object({
-  email: z.email().optional(),
-  password: z.string().min(8).optional(),
-  first_name: z.string().optional(),
-  last_name: z.string().optional(),
-});
+export const updateUserRequestSchema = z
+  .object({
+    email: z.string().email("Invalid email format").optional(),
+    password: z
+      .string()
+      .min(8, "Password must be at least 8 characters")
+      .optional(),
+    name: z.string().min(2, "Name must be at least 2 characters").optional(),
+    push_token: z.string().min(1, "Push token cannot be empty").optional(),
+    preferences: z
+      .object({
+        email_enabled: z.boolean().optional(),
+        push_enabled: z.boolean().optional(),
+        language: z.enum(["en", "es", "fr"]).optional(),
+        email_frequency: z.number().int().min(1).max(10080).optional(), // max 1 week in minutes
+        push_frequency: z.number().int().min(1).max(10080).optional(), // max 1 week in minutes
+      })
+      .strict()
+      .optional(),
+  })
+  .strict()
+  .refine(
+    (data) => {
+      // Ensure at least one field is being updated
+      return Object.keys(data).length > 0;
+    },
+    {
+      message: "At least one field must be provided for update",
+    }
+  );

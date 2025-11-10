@@ -6,6 +6,7 @@ import {
   boolean,
   jsonb,
   pgEnum,
+  integer,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
@@ -14,31 +15,29 @@ export const platformEnum = pgEnum("platform", ["ios", "android", "web"]);
 
 export const users = pgTable("users", {
   id: varchar("id").primaryKey(),
-  email: varchar("email").unique(),
-  password_hash: text("password_hash"),
-  first_name: text("first_name"),
-  last_name: text("last_name"),
-  phone: text("phone"),
-  is_active: boolean("is_active").default(true),
+  email: varchar("email").unique().notNull(),
+  password_hash: text("password_hash").notNull(),
+  name: text("name").notNull(),
+  push_token: text("push_token"),
   last_login: timestamp("last_login"),
-  created_at: timestamp("created_at").defaultNow(),
-  updated_at: timestamp("updated_at").defaultNow(),
-  revoked_at: timestamp("revoked_at"), // New column for token revocation
+  created_at: timestamp("created_at").defaultNow().notNull(),
+  updated_at: timestamp("updated_at").defaultNow().notNull(),
+  revoked_at: timestamp("revoked_at"),
 });
 
 export const userPreferences = pgTable("user_preferences", {
   id: varchar("id").primaryKey(),
-  user_id: varchar("user_id").references(() => users.id, {
-    onDelete: "cascade",
-  }),
-  channel: channelEnum("channel"),
-  enabled: boolean("enabled").default(true),
-  language: varchar("language").default("en"),
-  frequency: varchar("frequency").default("immediate"),
-  categories: jsonb("categories"),
-  quiet_hours: jsonb("quiet_hours"),
-  created_at: timestamp("created_at").defaultNow(),
-  updated_at: timestamp("updated_at").defaultNow(),
+  user_id: varchar("user_id")
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull()
+    .unique(), // One preference set per user
+  email_enabled: boolean("email_enabled").default(true).notNull(),
+  push_enabled: boolean("push_enabled").default(true).notNull(),
+  language: varchar("language").default("en").notNull(),
+  email_frequency: integer("email_frequency").default(1440).notNull(), // minutes
+  push_frequency: integer("push_frequency").default(1440).notNull(), // minutes
+  created_at: timestamp("created_at").defaultNow().notNull(),
+  updated_at: timestamp("updated_at").defaultNow().notNull(),
 });
 
 export const pushTokens = pgTable("push_tokens", {
@@ -64,8 +63,11 @@ export const refreshTokens = pgTable("refresh_tokens", {
   created_at: timestamp("created_at").defaultNow(),
 });
 
-export const usersRelations = relations(users, ({ many }) => ({
-  preferences: many(userPreferences),
+export const usersRelations = relations(users, ({ many, one }) => ({
+  preferences: one(userPreferences, {
+    fields: [users.id],
+    references: [userPreferences.user_id],
+  }),
   push_tokens: many(pushTokens),
   refresh_tokens: many(refreshTokens),
 }));

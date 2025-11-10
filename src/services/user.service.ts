@@ -28,8 +28,8 @@ type UpdateUser = z.infer<typeof updateUserRequestSchema>;
 interface UserPayload {
   user_id: string;
   email: string;
-  first_name?: string | null;
-  last_name?: string | null;
+  name?: string | null;
+  push_token?: string | null;
 }
 
 type AuthTokens = z.infer<typeof authTokensResponseSchema>;
@@ -65,12 +65,12 @@ const generateTokens = async (user: UserPayload): Promise<AuthTokens> => {
 export const signup_service = async (
   userData: RegisterUser
 ): Promise<z.infer<typeof registerResponseSchema>> => {
-  const { email, password, first_name, last_name } = userData;
+  const { email, password, name, push_token } = userData;
 
   const existingUser = await db
     .select()
     .from(users)
-.where(eq(users.email, email));
+    .where(eq(users.email, email));
 
   if (existingUser.length > 0) {
     return {
@@ -89,50 +89,24 @@ export const signup_service = async (
         id: `user_${new Date().getTime()}`,
         email,
         password_hash: passwordHash,
-        first_name,
-        last_name,
+        name,
+        push_token,
       })
       .returning();
 
-    const defaultPreferences: {
-      channel: "email" | "push" | "sms";
-      enabled: boolean;
-      language: string;
-      frequency: string;
-    }[] = [
-      {
-        channel: "email",
-        enabled: true,
-        language: "en",
-        frequency: "immediate",
-      },
-      {
-        channel: "push",
-        enabled: true,
-        language: "en",
-        frequency: "immediate",
-      },
-      {
-        channel: "sms",
-        enabled: false,
-        language: "en",
-        frequency: "immediate",
-      },
-    ];
+    const preferences: NewUserPreference = {
+      id: `pref_${new Date().getTime()}`,
+      user_id: insertedUser[0]!.id,
+      email_enabled: userData.preferences.email_enabled,
+      push_enabled: userData.preferences.push_enabled,
+      language: userData.preferences.language,
+      email_frequency: userData.preferences.email_frequency,
+      push_frequency: userData.preferences.push_frequency,
+      created_at: new Date(),
+      updated_at: new Date(),
+    };
 
-    const preferencesToInsert: NewUserPreference[] = defaultPreferences.map(
-      (pref, index) => ({
-        id: `pref_${new Date().getTime()}_${index}`,
-        user_id: insertedUser[0]!.id, // Asserting insertedUser[0] is not undefined
-        ...pref,
-        categories: null,
-        quiet_hours: null,
-        updated_at: new Date(),
-        created_at: new Date(),
-      })
-    );
-
-    await tx.insert(userPreferences).values(preferencesToInsert);
+    await tx.insert(userPreferences).values(preferences);
 
     return insertedUser[0];
   });
@@ -150,9 +124,16 @@ export const signup_service = async (
     data: {
       user_id: newUser.id,
       email: newUser.email,
-      first_name: newUser.first_name,
-      last_name: newUser.last_name,
+      name: newUser.name,
+      push_token: newUser.push_token,
       created_at: newUser.created_at,
+      preferences: {
+        email_enabled: userData.preferences.email_enabled,
+        push_enabled: userData.preferences.push_enabled,
+        language: userData.preferences.language,
+        email_frequency: userData.preferences.email_frequency,
+        push_frequency: userData.preferences.push_frequency,
+      },
     },
     message: "User registered successfully",
   };
@@ -170,7 +151,7 @@ export const login_service = async (
     .where(eq(users.email, email));
   const user = userResult[0];
 
-  if (!user || !user.is_active) {
+  if (!user) {
     return {
       success: false,
       error: "INVALID_CREDENTIALS",
@@ -201,8 +182,8 @@ export const login_service = async (
   const tokens = await generateTokens({
     user_id: user.id!,
     email: user.email!,
-    first_name: user.first_name,
-    last_name: user.last_name,
+    name: user.name,
+    push_token: user.push_token,
   });
 
   // Update revoked_at timestamp for the user to invalidate all previous access tokens.
@@ -212,11 +193,28 @@ export const login_service = async (
     .set({ revoked_at: new Date(tokens.iat * 1000) })
     .where(eq(users.id, user.id));
 
+  // Fetch user preferences
+  const userPrefs = await db
+    .select()
+    .from(userPreferences)
+    .where(eq(userPreferences.user_id, user.id));
+
+  const prefs = userPrefs[0];
+
   return {
     success: true,
     data: {
       user_id: user.id,
       email: user.email,
+      name: user.name,
+      push_token: user.push_token,
+      preferences: {
+        email_enabled: prefs?.email_enabled ?? true,
+        push_enabled: prefs?.push_enabled ?? true,
+        language: (prefs?.language as "en" | "es" | "fr") ?? "en",
+        email_frequency: prefs?.email_frequency ?? 1440,
+        push_frequency: prefs?.push_frequency ?? 1440,
+      },
       ...tokens,
     },
     message: "Login successful",
@@ -270,19 +268,19 @@ export const refresh_service = async (
       .from(users)
       .where(eq(users.id, decoded.user_id));
 
-    if (!user[0] || !user[0].is_active) {
+    if (!user[0]) {
       return {
         success: false,
         error: "USER_NOT_FOUND",
-        message: "User not found or inactive",
+        message: "User not found",
       };
     }
 
     const tokens = await generateTokens({
       user_id: user[0].id!,
       email: user[0].email!,
-      first_name: user[0].first_name,
-      last_name: user[0].last_name,
+      name: user[0].name,
+      push_token: user[0].push_token,
     });
 
     // Update revoked_at timestamp for the user to invalidate all previous access tokens.
@@ -292,11 +290,28 @@ export const refresh_service = async (
       .set({ revoked_at: new Date(tokens.iat * 1000) })
       .where(eq(users.id, user[0].id));
 
+    // Fetch user preferences
+    const userPrefs = await db
+      .select()
+      .from(userPreferences)
+      .where(eq(userPreferences.user_id, user[0].id));
+
+    const prefs = userPrefs[0];
+
     return {
       success: true,
       data: {
         user_id: user[0].id,
         email: user[0].email,
+        name: user[0].name,
+        push_token: user[0].push_token,
+        preferences: {
+          email_enabled: prefs?.email_enabled ?? true,
+          push_enabled: prefs?.push_enabled ?? true,
+          language: (prefs?.language as "en" | "es" | "fr") ?? "en",
+          email_frequency: prefs?.email_frequency ?? 1440,
+          push_frequency: prefs?.push_frequency ?? 1440,
+        },
         ...tokens,
       },
       message: "Token refreshed successfully",
@@ -325,11 +340,11 @@ export const validate_service = async (
       .where(eq(users.id, decoded.user_id));
     const user = userResult[0];
 
-    if (!user || !user.is_active) {
+    if (!user) {
       return {
         success: false,
         error: "USER_NOT_FOUND",
-        message: "User not found or inactive",
+        message: "User not found",
       };
     }
 
@@ -342,14 +357,29 @@ export const validate_service = async (
       };
     }
 
+    // Fetch user preferences
+    const userPrefs = await db
+      .select()
+      .from(userPreferences)
+      .where(eq(userPreferences.user_id, user.id));
+
+    const prefs = userPrefs[0];
+
     return {
       success: true,
       data: {
         id: user.id,
         email: user.email,
-        first_name: user.first_name,
-        last_name: user.last_name,
-        is_active: user.is_active,
+        name: user.name,
+        push_token: user.push_token,
+        preferences: {
+          email_enabled: prefs?.email_enabled ?? true,
+          push_enabled: prefs?.push_enabled ?? true,
+          language: (prefs?.language as "en" | "es" | "fr") ?? "en",
+          email_frequency: prefs?.email_frequency ?? 1440,
+          push_frequency: prefs?.push_frequency ?? 1440,
+        },
+        is_active: true,
         created_at: user.created_at,
         updated_at: user.updated_at,
         last_login: user.last_login,
@@ -379,7 +409,7 @@ export const logout_service = async (
       .where(eq(users.email, email));
     const user = userResult[0];
 
-    if (!user || !user.is_active) {
+    if (!user) {
       return {
         success: false,
         error: "INVALID_CREDENTIALS",
@@ -431,7 +461,7 @@ export const delete_service = async (
       .where(eq(users.email, email));
     const user = userResult[0];
 
-    if (!user || !user.is_active) {
+    if (!user) {
       return {
         success: false,
         error: "INVALID_CREDENTIALS",
@@ -518,11 +548,11 @@ export const update_service = async (
     if (userData.password) {
       updateFields.password_hash = await Bun.password.hash(userData.password);
     }
-    if (userData.first_name) {
-      updateFields.first_name = userData.first_name;
+    if (userData.name) {
+      updateFields.name = userData.name;
     }
-    if (userData.last_name) {
-      updateFields.last_name = userData.last_name;
+    if (userData.push_token) {
+      updateFields.push_token = userData.push_token;
     }
 
     const updatedUser = await db
@@ -539,13 +569,43 @@ export const update_service = async (
       };
     }
 
+    // Update preferences if provided
+    if (userData.preferences) {
+      await db
+        .update(userPreferences)
+        .set({
+          email_enabled: userData.preferences.email_enabled,
+          push_enabled: userData.preferences.push_enabled,
+          language: userData.preferences.language,
+          email_frequency: userData.preferences.email_frequency,
+          push_frequency: userData.preferences.push_frequency,
+          updated_at: new Date(),
+        })
+        .where(eq(userPreferences.user_id, userId));
+    }
+
+    // Fetch updated preferences
+    const userPrefs = await db
+      .select()
+      .from(userPreferences)
+      .where(eq(userPreferences.user_id, userId));
+
+    const prefs = userPrefs[0];
+
     return {
       success: true,
       data: {
         user_id: updatedUser[0].id,
         email: updatedUser[0].email,
-        first_name: updatedUser[0].first_name,
-        last_name: updatedUser[0].last_name,
+        name: updatedUser[0].name,
+        push_token: updatedUser[0].push_token,
+        preferences: {
+          email_enabled: prefs?.email_enabled ?? true,
+          push_enabled: prefs?.push_enabled ?? true,
+          language: (prefs?.language as "en" | "es" | "fr") ?? "en",
+          email_frequency: prefs?.email_frequency ?? 1440,
+          push_frequency: prefs?.push_frequency ?? 1440,
+        },
         created_at: updatedUser[0].created_at,
       },
       message: "User updated successfully",

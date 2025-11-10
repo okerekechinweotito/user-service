@@ -24,10 +24,18 @@ const factory = createFactory();
 export const signup = factory.createHandlers(
   zValidator("json", registerRequestSchema, (result, c) => {
     if (!result.success) {
+      const errors = result.error.issues.map((issue) => ({
+        field: issue.path.join("."),
+        message: issue.message,
+        code: issue.code,
+      }));
+
       return c.json(
         {
-          message:
-            "Invalid request parameters - expects JSON body of email, password, first_name, last_name,",
+          success: false,
+          error: "VALIDATION_ERROR",
+          message: "Invalid request parameters",
+          details: errors,
         },
         422
       );
@@ -53,10 +61,18 @@ export const signup = factory.createHandlers(
 export const login = factory.createHandlers(
   zValidator("json", loginRequestSchema, (result, c) => {
     if (!result.success) {
+      const errors = result.error.issues.map((issue) => ({
+        field: issue.path.join("."),
+        message: issue.message,
+        code: issue.code,
+      }));
+
       return c.json(
         {
-          message:
-            "Invalid request parameters - expects JSON body of email and password",
+          success: false,
+          error: "VALIDATION_ERROR",
+          message: "Invalid request parameters",
+          details: errors,
         },
         422
       );
@@ -82,9 +98,18 @@ export const login = factory.createHandlers(
 export const refresh = factory.createHandlers(
   zValidator("json", refreshTokenRequestSchema, (result, c) => {
     if (!result.success) {
+      const errors = result.error.issues.map((issue) => ({
+        field: issue.path.join("."),
+        message: issue.message,
+        code: issue.code,
+      }));
+
       return c.json(
         {
-          message: "Invalid request parameters - expects a refresh_token",
+          success: false,
+          error: "VALIDATION_ERROR",
+          message: "Invalid request parameters",
+          details: errors,
         },
         422
       );
@@ -136,10 +161,18 @@ export const validate = factory.createHandlers(async (c) => {
 export const logout = factory.createHandlers(
   zValidator("json", logoutRequestSchema, (result, c) => {
     if (!result.success) {
+      const errors = result.error.issues.map((issue) => ({
+        field: issue.path.join("."),
+        message: issue.message,
+        code: issue.code,
+      }));
+
       return c.json(
         {
-          message:
-            "Invalid request parameters - expects JSON body of email and password",
+          success: false,
+          error: "VALIDATION_ERROR",
+          message: "Invalid request parameters",
+          details: errors,
         },
         422
       );
@@ -165,10 +198,18 @@ export const logout = factory.createHandlers(
 export const delete_user = factory.createHandlers(
   zValidator("json", deleteUserRequestSchema, (result, c) => {
     if (!result.success) {
+      const errors = result.error.issues.map((issue) => ({
+        field: issue.path.join("."),
+        message: issue.message,
+        code: issue.code,
+      }));
+
       return c.json(
         {
-          message:
-            "Invalid request parameters - expects JSON body of email and password",
+          success: false,
+          error: "VALIDATION_ERROR",
+          message: "Invalid request parameters",
+          details: errors,
         },
         422
       );
@@ -194,10 +235,18 @@ export const delete_user = factory.createHandlers(
 export const update_user = factory.createHandlers(
   zValidator("json", updateUserRequestSchema, (result, c) => {
     if (!result.success) {
+      const errors = result.error.issues.map((issue) => ({
+        field: issue.path.join("."),
+        message: issue.message,
+        code: issue.code,
+      }));
+
       return c.json(
         {
-          message:
-            "Invalid request parameters - expects JSON body with optional email, password, first_name, last_name",
+          success: false,
+          error: "VALIDATION_ERROR",
+          message: "Invalid request parameters",
+          details: errors,
         },
         422
       );
