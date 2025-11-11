@@ -24,6 +24,20 @@ export const users = pgTable("users", {
   updated_at: timestamp("updated_at").defaultNow().notNull(),
   revoked_at: timestamp("revoked_at"),
 });
+// User permissions table with boolean properties
+export const userPermissions = pgTable("user_permissions", {
+  id: varchar("id").primaryKey(),
+  user_id: varchar("user_id")
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull()
+    .unique(),
+  read: boolean("read").default(false).notNull(),
+  write: boolean("write").default(false).notNull(),
+  update: boolean("update").default(false).notNull(),
+  delete: boolean("delete").default(false).notNull(),
+  created_at: timestamp("created_at").defaultNow().notNull(),
+  updated_at: timestamp("updated_at").defaultNow().notNull(),
+});
 
 export const userPreferences = pgTable("user_preferences", {
   id: varchar("id").primaryKey(),

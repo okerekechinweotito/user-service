@@ -1,3 +1,4 @@
+// Role and permissions logic removed. Implement permissions logic using user_permissions table.
 import { db } from "./db.service";
 import {
   users,
@@ -35,7 +36,7 @@ interface UserPayload {
 type AuthTokens = z.infer<typeof authTokensResponseSchema>;
 
 const generateTokens = async (user: UserPayload): Promise<AuthTokens> => {
-  const accessToken = jwt.sign(user, JWT_SECRET, { expiresIn: "1h" });
+  const accessToken = jwt.sign(user, JWT_SECRET, { expiresIn: "6h" });
   const refreshToken = jwt.sign(user, REFRESH_TOKEN_SECRET, {
     expiresIn: "7d",
   }); // Longer expiry for refresh token
@@ -365,6 +366,7 @@ export const validate_service = async (
 
     const prefs = userPrefs[0];
 
+    // Return minimal data in validate response
     return {
       success: true,
       data: {
@@ -383,7 +385,12 @@ export const validate_service = async (
         created_at: user.created_at,
         updated_at: user.updated_at,
         last_login: user.last_login,
-        permissions: ["notifications:create", "notifications:read"], // Placeholder permissions
+        permissions: [
+          "notifications:create",
+          "notifications:read",
+          "preferences:read",
+          "preferences:update",
+        ], // Added permissions
       },
       message: "Token is valid",
     };

@@ -1,5 +1,5 @@
 import { createFactory } from "hono/factory";
-import { customLogger } from "../utils/logger.ts";
+import { bunLogger } from "../utils/logger.ts";
 import { getHealthStatus } from "../services/health.service";
 
 const factory = createFactory();
@@ -16,7 +16,7 @@ export const get_health = factory.createHandlers(async (c) => {
 
     return c.json(healthStatus, statusCode);
   } catch (error) {
-    customLogger(error, "get_health");
+    bunLogger.error("get_health error", { context: { error } });
     return c.json(
       {
         status: "down",

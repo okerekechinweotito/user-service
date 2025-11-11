@@ -1,4 +1,4 @@
-import { customLogger } from "../utils/logger";
+import { bunLogger } from "../utils/logger";
 import { db } from "./db.service";
 import { sql } from "drizzle-orm";
 
@@ -65,7 +65,7 @@ const getDatabaseMetrics = async (): Promise<DatabaseMetrics> => {
       },
     };
   } catch (error) {
-    customLogger(error, "getDatabaseMetrics");
+    bunLogger.error("getDatabaseMetrics error", { context: { error } });
     return {
       status: "down",
       responseTime: -1,
@@ -108,7 +108,7 @@ export const getHealthStatus = async (): Promise<HealthStatus> => {
       lastChecked: new Date().toISOString(),
     };
   } catch (error) {
-    customLogger(error, "getHealthStatus");
+    bunLogger.error("getHealthStatus error", { context: { error } });
     throw error;
   }
 };

@@ -1,6 +1,6 @@
 import { createFactory } from "hono/factory";
 import { zValidator } from "@hono/zod-validator";
-import { customLogger } from "../utils/logger";
+import { bunLogger as customLogger } from "../utils/logger";
 import {
   loginRequestSchema,
   refreshTokenRequestSchema,
@@ -52,7 +52,7 @@ export const signup = factory.createHandlers(
 
       return c.json(response, 201);
     } catch (error) {
-      customLogger(error, "signup");
+      customLogger.error("signup error", { context: { error } });
       return c.json({ status: 500, message: "Something went wrong" }, 500);
     }
   }
@@ -89,7 +89,7 @@ export const login = factory.createHandlers(
 
       return c.json(response);
     } catch (error) {
-      customLogger(error, "login");
+      customLogger.error("login error", { context: { error } });
       return c.json({ status: 500, message: "Something went wrong" }, 500);
     }
   }
@@ -126,7 +126,7 @@ export const refresh = factory.createHandlers(
 
       return c.json(response);
     } catch (error) {
-      customLogger(error, "refresh");
+      customLogger.error("refresh error", { context: { error } });
       return c.json({ status: 500, message: "Something went wrong" }, 500);
     }
   }
@@ -153,7 +153,7 @@ export const validate = factory.createHandlers(async (c) => {
 
     return c.json(response);
   } catch (error) {
-    customLogger(error, "validate");
+    customLogger.error("validate error", { context: { error } });
     return c.json({ status: 500, message: "Something went wrong" }, 500);
   }
 });
@@ -189,7 +189,7 @@ export const logout = factory.createHandlers(
 
       return c.json(response);
     } catch (error) {
-      customLogger(error, "logout");
+      customLogger.error("logout error", { context: { error } });
       return c.json({ status: 500, message: "Something went wrong" }, 500);
     }
   }
@@ -226,7 +226,7 @@ export const delete_user = factory.createHandlers(
 
       return c.json(response);
     } catch (error) {
-      customLogger(error, "delete_user");
+      customLogger.error("delete_user error", { context: { error } });
       return c.json({ status: 500, message: "Something went wrong" }, 500);
     }
   }
@@ -281,8 +281,66 @@ export const update_user = factory.createHandlers(
 
       return c.json(response);
     } catch (error) {
-      customLogger(error, "update_user");
+      customLogger.error("update_user error", { context: { error } });
       return c.json({ status: 500, message: "Something went wrong" }, 500);
     }
   }
 );
+
+export const get_user_data = factory.createHandlers(async (c) => {
+  try {
+    const user = c.get("user");
+    const userData = {
+      success: true,
+      data: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        push_token: user.push_token,
+        created_at: user.created_at,
+        updated_at: user.updated_at,
+        last_login: user.last_login,
+      },
+      message: "User data retrieved successfully",
+    };
+
+    return c.json(userData);
+  } catch (error) {
+    customLogger.error("get_user_data error", { context: { error } });
+    return c.json({ status: 500, message: "Something went wrong" }, 500);
+  }
+});
+
+export const get_user_preferences = factory.createHandlers(async (c) => {
+  try {
+    const user = c.get("user");
+    const preferencesData = {
+      success: true,
+      data: user.preferences,
+      message: "User preferences retrieved successfully",
+    };
+
+    return c.json(preferencesData);
+  } catch (error) {
+    customLogger.error("get_user_preferences error", { context: { error } });
+    return c.json({ status: 500, message: "Something went wrong" }, 500);
+  }
+});
+
+export const get_user_permissions = factory.createHandlers(async (c) => {
+  try {
+    const user = c.get("user");
+    const permissionsData = {
+      success: true,
+      data: {
+        permissions: user.permissions,
+      },
+      message: "User permissions retrieved successfully",
+    };
+
+    return c.json(permissionsData);
+  } catch (error) {
+  customLogger.error("get_user_permissions error", { context: { error } });
+    return c.json({ status: 500, message: "Something went wrong" }, 500);
+  }
+});

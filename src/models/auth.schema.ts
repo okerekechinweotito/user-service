@@ -1,5 +1,33 @@
 import { z } from "zod";
 
+// =====================
+// Authenticated User Context Types
+// =====================
+import type { User } from "./drizzle.schema";
+
+export interface AuthUserType extends Partial<Omit<User, "password_hash">> {
+  id: string;
+  email: string;
+  name: string;
+  preferences: {
+    email_enabled: boolean;
+    push_enabled: boolean;
+    language: "en" | "es" | "fr";
+    email_frequency: number;
+    push_frequency: number;
+  };
+  permissions: string[];
+}
+
+declare module "hono" {
+  interface ContextVariableMap {
+    user: AuthUserType;
+  }
+}
+
+// =====================
+// Zod Schemas: User Preferences & Requests
+// =====================
 export const UserPreferenceSchema = z
   .object({
     email_enabled: z.boolean().default(true),
@@ -8,11 +36,11 @@ export const UserPreferenceSchema = z
     email_frequency: z.number().int().min(1).max(10080).default(1440), // max 1 week in minutes
     push_frequency: z.number().int().min(1).max(10080).default(1440), // max 1 week in minutes
   })
-  .strict(); // This ensures no extra properties are allowed
+  .strict();
 
 export const loginRequestSchema = z
   .object({
-    email: z.string().email("Invalid email format"),
+    email: z.email("Invalid email format"),
     password: z.string().min(8, "Password must be at least 8 characters"),
   })
   .strict();
@@ -25,7 +53,7 @@ export const refreshTokenRequestSchema = z
 
 export const registerRequestSchema = z
   .object({
-    email: z.string().email("Invalid email format"),
+    email: z.email("Invalid email format"),
     password: z.string().min(8, "Password must be at least 8 characters"),
     name: z.string().min(2, "Name must be at least 2 characters"),
     push_token: z.string().optional(),
@@ -33,10 +61,57 @@ export const registerRequestSchema = z
   })
   .strict();
 
-// Response schemas
+export const updateUserRequestSchema = z
+  .object({
+    email: z.string().email("Invalid email format").optional(),
+    password: z
+      .string()
+      .min(8, "Password must be at least 8 characters")
+      .optional(),
+    name: z.string().min(2, "Name must be at least 2 characters").optional(),
+    push_token: z.string().min(1, "Push token cannot be empty").optional(),
+    preferences: z
+      .object({
+        email_enabled: z.boolean().optional(),
+        push_enabled: z.boolean().optional(),
+        language: z.enum(["en", "es", "fr"]).optional(),
+        email_frequency: z.number().int().min(1).max(10080).optional(),
+        push_frequency: z.number().int().min(1).max(10080).optional(),
+      })
+      .strict()
+      .optional(),
+  })
+  .strict()
+  .refine(
+    (data) => {
+      // Ensure at least one field is being updated
+      return Object.keys(data).length > 0;
+    },
+    {
+      message: "At least one field must be provided for update",
+    }
+  );
+
+export const logoutRequestSchema = z
+  .object({
+    email: z.email(),
+    password: z.string().min(8),
+  })
+  .strict();
+
+export const deleteUserRequestSchema = z
+  .object({
+    email: z.email(),
+    password: z.string().min(8),
+  })
+  .strict();
+
+// =====================
+// Zod Schemas: Responses
+// =====================
 export const registerResponseDataSchema = z.object({
   user_id: z.string(),
-  email: z.string().email(),
+  email: z.email(),
   name: z.string(),
   push_token: z.string().optional().nullable(),
   preferences: UserPreferenceSchema,
@@ -89,7 +164,7 @@ export const loginResponseSchema = z.union([
 
 export const validateResponseDataSchema = z.object({
   id: z.string(),
-  email: z.string().email(),
+  email: z.email(),
   name: z.string(),
   push_token: z.string().optional().nullable(),
   preferences: UserPreferenceSchema,
@@ -124,48 +199,3 @@ export const logoutResponseSchema = z.union([
     message: z.string(),
   }),
 ]);
-
-export const logoutRequestSchema = z
-  .object({
-    email: z.email(),
-    password: z.string().min(8),
-  })
-  .strict();
-
-export const deleteUserRequestSchema = z
-  .object({
-    email: z.email(),
-    password: z.string().min(8),
-  })
-  .strict();
-
-export const updateUserRequestSchema = z
-  .object({
-    email: z.string().email("Invalid email format").optional(),
-    password: z
-      .string()
-      .min(8, "Password must be at least 8 characters")
-      .optional(),
-    name: z.string().min(2, "Name must be at least 2 characters").optional(),
-    push_token: z.string().min(1, "Push token cannot be empty").optional(),
-    preferences: z
-      .object({
-        email_enabled: z.boolean().optional(),
-        push_enabled: z.boolean().optional(),
-        language: z.enum(["en", "es", "fr"]).optional(),
-        email_frequency: z.number().int().min(1).max(10080).optional(), // max 1 week in minutes
-        push_frequency: z.number().int().min(1).max(10080).optional(), // max 1 week in minutes
-      })
-      .strict()
-      .optional(),
-  })
-  .strict()
-  .refine(
-    (data) => {
-      // Ensure at least one field is being updated
-      return Object.keys(data).length > 0;
-    },
-    {
-      message: "At least one field must be provided for update",
-    }
-  );
