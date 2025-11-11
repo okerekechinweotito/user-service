@@ -5,43 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1762715895946,
-      "tag": "0000_moaning_purple_man",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1762731385125,
-      "tag": "0001_concerned_medusa",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1762780714384,
-      "tag": "0002_eminent_spot",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1762780978768,
-      "tag": "0003_lyrical_wasp",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1762802192314,
-      "tag": "0004_cuddly_shiva",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1762802345883,
-      "tag": "0005_certain_trish_tilby",
+      "when": 1762862984743,
+      "tag": "0000_special_human_robot",
       "breakpoints": true
     }
   ]

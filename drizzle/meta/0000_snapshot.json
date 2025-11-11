@@ -1,5 +1,5 @@
 {
-  "id": "f5d00f02-135a-4a24-9f63-a944192b162b",
+  "id": "840ed763-42b4-4786-bb49-55a6119241e6",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -141,6 +141,95 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.user_permissions": {
+      "name": "user_permissions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "read": {
+          "name": "read",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "write": {
+          "name": "write",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "update": {
+          "name": "update",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "delete": {
+          "name": "delete",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "user_permissions_user_id_users_id_fk": {
+          "name": "user_permissions_user_id_users_id_fk",
+          "tableFrom": "user_permissions",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "user_permissions_user_id_unique": {
+          "name": "user_permissions_user_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "user_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.user_preferences": {
       "name": "user_preferences",
       "schema": "",
@@ -155,60 +244,55 @@
           "name": "user_id",
           "type": "varchar",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
-        "channel": {
-          "name": "channel",
-          "type": "channel",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "enabled": {
-          "name": "enabled",
+        "email_enabled": {
+          "name": "email_enabled",
           "type": "boolean",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
+          "default": true
+        },
+        "push_enabled": {
+          "name": "push_enabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
           "default": true
         },
         "language": {
           "name": "language",
           "type": "varchar",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "default": "'en'"
         },
-        "frequency": {
-          "name": "frequency",
-          "type": "varchar",
+        "email_frequency": {
+          "name": "email_frequency",
+          "type": "integer",
           "primaryKey": false,
-          "notNull": false,
-          "default": "'immediate'"
+          "notNull": true,
+          "default": 1440
         },
-        "categories": {
-          "name": "categories",
-          "type": "jsonb",
+        "push_frequency": {
+          "name": "push_frequency",
+          "type": "integer",
           "primaryKey": false,
-          "notNull": false
-        },
-        "quiet_hours": {
-          "name": "quiet_hours",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
+          "notNull": true,
+          "default": 1440
         },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "default": "now()"
         },
         "updated_at": {
           "name": "updated_at",
           "type": "timestamp",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "default": "now()"
         }
       },
@@ -229,7 +313,15 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "user_preferences_user_id_unique": {
+          "name": "user_preferences_user_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "user_id"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -248,38 +340,25 @@
           "name": "email",
           "type": "varchar",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "password_hash": {
           "name": "password_hash",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
-        "first_name": {
-          "name": "first_name",
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "push_token": {
+          "name": "push_token",
           "type": "text",
           "primaryKey": false,
           "notNull": false
-        },
-        "last_name": {
-          "name": "last_name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "phone": {
-          "name": "phone",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "is_active": {
-          "name": "is_active",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": false,
-          "default": true
         },
         "last_login": {
           "name": "last_login",
@@ -291,15 +370,21 @@
           "name": "created_at",
           "type": "timestamp",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "default": "now()"
         },
         "updated_at": {
           "name": "updated_at",
           "type": "timestamp",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "default": "now()"
+        },
+        "revoked_at": {
+          "name": "revoked_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
