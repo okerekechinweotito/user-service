@@ -1,0 +1,59 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:18-alpine
+    container_name: user-service-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: userservice
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - user-service-network
+
+  # User Service Application
+  user-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: user-service-app
+    ports:
+      - "3000:3000"
+    environment:
+      # Database connection
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/userservice
+
+      # RabbitMQ connection (connect to external/shared instance)
+      # RABBITMQ_URL: ${RABBITMQ_URL:-amqp://guest:guest@host.docker.internal:5672}
+
+      # Application settings
+      NODE_ENV: development
+      PORT: 3000
+
+      # JWT Secret (change this in production!)
+      JWT_SECRET: your-super-secret-jwt-key-change-in-production
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - user-service-network
+    # Uncomment for hot-reload during development
+    # volumes:
+    #   - ./src:/usr/src/app/src
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  user-service-network:
+    driver: bridge
