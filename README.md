@@ -30,7 +30,7 @@ graph LR
 
 ## 🚀 Live Deployment
 
-**Live API**: https://user-service-td0phq.fly.dev/api/v1/
+**Live API**: https://user-service-td0phq.fly.dev/api/v1
 
 **API Documentation**:
 - **Scalar API Reference**: https://user-service-td0phq.fly.dev/api/v1/reference (Recommended - Modern UI)

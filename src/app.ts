@@ -34,10 +34,16 @@ app.use("*", async (c, next) => {
 });
 
 app.get("/", (c) => {
+  const baseUrl = new URL(c.req.url).origin;
   return c.json(
     {
       status: "ok",
       message: "Welcome to the Notifications API",
+      docs: {
+        scalar: `${baseUrl}/api/v1/reference`,
+        swagger: `${baseUrl}/api/v1/ui`,
+        openapi: `${baseUrl}/api/v1/doc`,
+      },
     },
     200
   );
