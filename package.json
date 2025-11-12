@@ -1,5 +1,7 @@
 {
-  "name": "scaffold",
+  "name": "user-service",
+  "version": "0.1.1",
+  "description": "User service for handling user management, authentication, and preferences.",
   "scripts": {
     "dev": "bun run --hot src/server.ts",
     "start": "bun src/server.ts",
