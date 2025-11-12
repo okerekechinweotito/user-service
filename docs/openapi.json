@@ -7,6 +7,10 @@
   },
   "servers": [
     {
+      "url": "https://user-service-td0phq.fly.dev/api/v1",
+      "description": "Production server"
+    },
+    {
       "url": "http://localhost:3000/api/v1",
       "description": "Development server"
     }
