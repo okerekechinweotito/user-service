@@ -8,20 +8,24 @@ User authentication and management service with role-based access control. Built
 graph LR
     A[User Service<br/>Bun + Hono] --> B[(PostgreSQL<br/>Database)]
     A --> C[RabbitMQ<br/>Message Queue]
+    A -.->|REST API| E[API Gateway]
     
     B -.->|Health Check| A
     C -.->|Events| D[Notification System]
+    E -.->|Routes Requests| A
     
     style A fill:#4a90e2,stroke:#2e5c8a,stroke-width:2px,color:#fff
     style B fill:#336791,stroke:#1a3a5c,stroke-width:2px,color:#fff
     style C fill:#ff6600,stroke:#cc5200,stroke-width:2px,color:#fff
     style D fill:#42b883,stroke:#2a7555,stroke-width:2px,color:#fff
+    style E fill:#9b59b6,stroke:#7d3c98,stroke-width:2px,color:#fff
 ```
 
 **Components:**
 - **User Service**: REST API handling authentication, user management, and event publishing
 - **PostgreSQL**: Persistent storage for users, preferences, and refresh tokens
 - **RabbitMQ**: Message broker for publishing user lifecycle events to other services
+- **API Gateway**: (Optional) Routes and proxies external requests to the User Service
 
 ## Features
 
