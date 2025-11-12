@@ -34,6 +34,7 @@ COPY --from=prerelease /usr/src/app/package.json .
 COPY --from=prerelease /usr/src/app/bun.lock .
 COPY --from=prerelease /usr/src/app/src ./src
 COPY --from=prerelease /usr/src/app/drizzle ./drizzle
+COPY --from=prerelease /usr/src/app/docs ./docs
 # COPY --from=prerelease /usr/src/app/.env .env
 
 # run the app
