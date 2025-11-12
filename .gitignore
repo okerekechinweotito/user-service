@@ -35,4 +35,5 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
 # Utilities
 hono.txt
-.github/copilot-instructions.md
+.github/
+supabase
