@@ -48,7 +48,7 @@ app.route("/auth", authRoutes);
 
 
 app.get("/doc", async (c) => {
-  const openapi = await Bun.file("./src/docs/openapi.json").json();
+  const openapi = await Bun.file("./docs/openapi.json").json();
   return c.json(openapi);
 });
 
