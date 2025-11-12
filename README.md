@@ -148,6 +148,59 @@ This command starts:
 
 📖 **See [DOCKER.md](./DOCKER.md) for complete Docker guide**
 
+## RabbitMQ Integration
+
+The user-service publishes events to RabbitMQ for user lifecycle tracking.
+
+### Published Events
+
+All events are published to the **`user-events`** exchange (type: `topic`):
+
+| Event | Routing Key | Trigger |
+|-------|-------------|---------|
+| User Created | `user.created` | User registers |
+| User Logged In | `user.logged_in` | User logs in |
+| User Updated | `user.updated` | Profile modified |
+| Preferences Updated | `user.preferences_updated` | Preferences changed |
+| User Deleted | `user.deleted` | Account deleted |
+
+### Configuration
+
+Update `.env` with RabbitMQ credentials:
+
+```env
+RABBITMQ_URL=amqp://admin:secretpassword@rabbitmq:5672/%2F
+```
+
+To connect to an external RabbitMQ network, uncomment the network configuration in `docker-compose.yml`:
+
+```yaml
+networks:
+  - notification-system-network  # Uncomment this line
+```
+
+### Event Schema Example
+
+```json
+{
+  "event": "user.created",
+  "userId": "user_1731369600000",
+  "email": "user@example.com",
+  "name": "John Doe",
+  "timestamp": "2025-11-12T00:00:00.000Z"
+}
+```
+
+### Health Check
+
+RabbitMQ status is included in the health endpoint:
+
+```bash
+curl http://localhost:3000/api/v1/health | jq .rabbitmq
+```
+
+**Note**: Events use a fire-and-forget pattern. If RabbitMQ is unavailable, events are logged as errors but user operations still succeed.
+
 ## Documentation
 
 For detailed API documentation, see [src/docs/README.md](src/docs/README.md)

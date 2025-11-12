@@ -1,5 +1,3 @@
-// ...existing code removed to resolve naming conflict...
-// Bun-optimized logger utility
 type LogLevel = "info" | "warn" | "error" | "debug";
 
 interface LogOptions {
@@ -16,7 +14,6 @@ function formatLog(level: LogLevel, message: string, options?: LogOptions) {
   if (process.env.NODE_ENV === "production") {
     return JSON.stringify(logEntry);
   } else {
-    // Pretty print for development
     return (
       `[${logEntry.timestamp}] [${level.toUpperCase()}] ${message}` +
       (options?.context ? ` | context: ${JSON.stringify(options.context)}` : "")

@@ -11,10 +11,8 @@ const app = new Hono().basePath("/api/v1");
 app.use("*", cors());
 app.use("*", prettyJSON());
 
-// Hono built-in request logger
 app.use("*", logger());
 
-// Custom global request logging middleware
 app.use("*", async (c, next) => {
   const start = Date.now();
   await next();
@@ -45,6 +43,5 @@ app.get("/", (c) => {
 
 app.route("/health", healthRoutes);
 app.route("/auth", authRoutes);
-// admin routes removed
 
 export default app;

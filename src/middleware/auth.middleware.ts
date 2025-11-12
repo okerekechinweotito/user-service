@@ -23,8 +23,7 @@ export const requireAuth = async (c: Context, next: Next) => {
       return c.json(validationResponse, 401);
     }
 
-    // Add user data to context for downstream handlers
-    c.set("user", validationResponse.data);
+  c.set("user", validationResponse.data);
 
     await next();
   } catch (error) {

@@ -1,8 +1,4 @@
 import { z } from "zod";
-
-// =====================
-// Authenticated User Context Types
-// =====================
 import type { User } from "./drizzle.schema";
 
 export interface AuthUserType extends Partial<Omit<User, "password_hash">> {
@@ -24,17 +20,13 @@ declare module "hono" {
     user: AuthUserType;
   }
 }
-
-// =====================
-// Zod Schemas: User Preferences & Requests
-// =====================
 export const UserPreferenceSchema = z
   .object({
     email_enabled: z.boolean().default(true),
     push_enabled: z.boolean().default(true),
     language: z.enum(["en", "es", "fr"]).default("en"),
-    email_frequency: z.number().int().min(1).max(10080).default(1440), // max 1 week in minutes
-    push_frequency: z.number().int().min(1).max(10080).default(1440), // max 1 week in minutes
+    email_frequency: z.number().int().min(1).max(10080).default(1440),
+    push_frequency: z.number().int().min(1).max(10080).default(1440),
   })
   .strict();
 
@@ -84,7 +76,6 @@ export const updateUserRequestSchema = z
   .strict()
   .refine(
     (data) => {
-      // Ensure at least one field is being updated
       return Object.keys(data).length > 0;
     },
     {
@@ -106,9 +97,6 @@ export const deleteUserRequestSchema = z
   })
   .strict();
 
-// =====================
-// Zod Schemas: Responses
-// =====================
 export const registerResponseDataSchema = z.object({
   user_id: z.string(),
   email: z.email(),

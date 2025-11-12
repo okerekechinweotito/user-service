@@ -31,8 +31,13 @@ services:
       # Database connection
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/userservice
 
-      # RabbitMQ connection (connect to external/shared instance)
-      # RABBITMQ_URL: ${RABBITMQ_URL:-amqp://guest:guest@host.docker.internal:5672}
+      # RabbitMQ connection (connect to external/shared instance in notification system)
+      RABBITMQ_HOST: ${RABBITMQ_HOST:-rabbitmq}
+      RABBITMQ_PORT: ${RABBITMQ_PORT:-5672}
+      RABBITMQ_USER: ${RABBITMQ_USER:-admin}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-secretpassword}
+      RABBITMQ_VHOST: ${RABBITMQ_VHOST:-/}
+      RABBITMQ_URL: ${RABBITMQ_URL:-amqp://admin:secretpassword@rabbitmq:5672/%2F}
 
       # Application settings
       NODE_ENV: development
@@ -40,11 +45,14 @@ services:
 
       # JWT Secret (change this in production!)
       JWT_SECRET: your-super-secret-jwt-key-change-in-production
+      REFRESH_TOKEN_SECRET: ${REFRESH_TOKEN_SECRET:-your-super-secret-refresh-token-key}
     depends_on:
       postgres:
         condition: service_healthy
     networks:
       - user-service-network
+      # Uncomment below when connecting to external notification system
+      # - notification-system-network
     # Uncomment for hot-reload during development
     # volumes:
     #   - ./src:/usr/src/app/src
@@ -57,3 +65,7 @@ volumes:
 networks:
   user-service-network:
     driver: bridge
+  # Uncomment below when the external notification system is running
+  # notification-system-network:
+  #   external: true
+  #   name: notification-system_default

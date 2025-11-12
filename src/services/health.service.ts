@@ -1,5 +1,6 @@
 import { bunLogger } from "../utils/logger";
 import { db } from "./db.service";
+import { rabbitMQService } from "./rabbitmq.service";
 import { sql } from "drizzle-orm";
 
 interface DatabaseMetrics {
@@ -13,6 +14,11 @@ interface DatabaseMetrics {
   };
 }
 
+interface RabbitMQMetrics {
+  status: "ok" | "down" | "not_configured";
+  connected: boolean;
+}
+
 interface ServiceMetrics {
   version: string;
   environment: string;
@@ -24,6 +30,7 @@ interface HealthStatus {
   status: "ok" | "degraded" | "down";
   service: ServiceMetrics;
   database: DatabaseMetrics;
+  rabbitmq: RabbitMQMetrics;
   lastChecked: string;
 }
 
@@ -33,11 +40,9 @@ const getDatabaseMetrics = async (): Promise<DatabaseMetrics> => {
   try {
     const startTime = Date.now();
 
-    // Check basic connectivity
     await db.execute(sql`SELECT 1`);
     const responseTime = Date.now() - startTime;
 
-    // Get connection pool statistics
     const poolStats = await db
       .execute(
         sql`
@@ -56,7 +61,7 @@ const getDatabaseMetrics = async (): Promise<DatabaseMetrics> => {
       }));
 
     return {
-      status: responseTime < 500 ? "ok" : "degraded", // Degraded if response time > 500ms
+      status: responseTime < 500 ? "ok" : "degraded",
       responseTime,
       connections: {
         active: poolStats.active,
@@ -78,24 +83,48 @@ const getDatabaseMetrics = async (): Promise<DatabaseMetrics> => {
   }
 };
 
+const getRabbitMQMetrics = async (): Promise<RabbitMQMetrics> => {
+  try {
+    // Only check if RABBITMQ_URL is configured
+    if (!process.env.RABBITMQ_URL) {
+      return {
+        status: "not_configured",
+        connected: false,
+      };
+    }
+
+    const isHealthy = await rabbitMQService.checkHealth();
+    return {
+      status: isHealthy ? "ok" : "down",
+      connected: isHealthy,
+    };
+  } catch (error) {
+    bunLogger.error("getRabbitMQMetrics error", { context: { error } });
+    return {
+      status: "down",
+      connected: false,
+    };
+  }
+};
+
 const getServiceMetrics = (): ServiceMetrics => {
   return {
     version: process.env.npm_package_version || "1.0.0",
     environment: process.env.NODE_ENV || "development",
     startTime: startTime.toISOString(),
-    uptime: Math.round((Date.now() - startTime.getTime()) / 1000), // uptime in seconds
+    uptime: Math.round((Date.now() - startTime.getTime()) / 1000),
   };
 };
 
 export const getHealthStatus = async (): Promise<HealthStatus> => {
   try {
     const dbMetrics = await getDatabaseMetrics();
+    const rabbitMQMetrics = await getRabbitMQMetrics();
     const serviceMetrics = getServiceMetrics();
 
-    // Determine overall status
     let overallStatus: "ok" | "degraded" | "down" = "ok";
 
-    if (dbMetrics.status === "down") {
+    if (dbMetrics.status === "down" || rabbitMQMetrics.status === "down") {
       overallStatus = "down";
     } else if (dbMetrics.status === "degraded") {
       overallStatus = "degraded";
@@ -105,6 +134,7 @@ export const getHealthStatus = async (): Promise<HealthStatus> => {
       status: overallStatus,
       service: serviceMetrics,
       database: dbMetrics,
+      rabbitmq: rabbitMQMetrics,
       lastChecked: new Date().toISOString(),
     };
   } catch (error) {

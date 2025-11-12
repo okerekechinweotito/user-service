@@ -1,5 +1,5 @@
-// Role and permissions logic removed. Implement permissions logic using user_permissions table.
 import { db } from "./db.service";
+import { rabbitMQService } from "./rabbitmq.service";
 import {
   users,
   userPreferences,
@@ -18,6 +18,7 @@ import {
 import { z } from "zod";
 import type { NewUserPreference } from "../models/drizzle.schema";
 import jwt from "jsonwebtoken";
+import { bunLogger } from "../utils/logger";
 
 const JWT_SECRET = process.env.JWT_SECRET || "supersecretjwtkey";
 const REFRESH_TOKEN_SECRET =
@@ -39,27 +40,25 @@ const generateTokens = async (user: UserPayload): Promise<AuthTokens> => {
   const accessToken = jwt.sign(user, JWT_SECRET, { expiresIn: "6h" });
   const refreshToken = jwt.sign(user, REFRESH_TOKEN_SECRET, {
     expiresIn: "7d",
-  }); // Longer expiry for refresh token
+  });
 
-  // Decode the access token to get its iat
   const decodedAccessToken = jwt.decode(accessToken) as { iat: number };
   const iat = decodedAccessToken.iat;
 
-  // Store refresh token hash in DB
   const refreshTokenHash = await Bun.password.hash(refreshToken);
   await db.insert(refreshTokens).values({
     id: `rft_${new Date().getTime()}`,
     user_id: user.user_id,
     token_hash: refreshTokenHash,
-    expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
+    expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
   });
 
   return {
     access_token: accessToken,
     token_type: "Bearer",
-    expires_in: 3600, // 1 hour
+    expires_in: 3600,
     refresh_token: refreshToken,
-    iat: iat, // Return iat
+    iat: iat,
   };
 };
 
@@ -120,6 +119,28 @@ export const signup_service = async (
     };
   }
 
+  // Publish user.created event to RabbitMQ
+  try {
+    await rabbitMQService.publish("user-events", "user.created", {
+      event: "user.created",
+      userId: newUser.id,
+      email: newUser.email,
+      name: newUser.name,
+      pushToken: newUser.push_token,
+      preferences: {
+        emailEnabled: userData.preferences.email_enabled,
+        pushEnabled: userData.preferences.push_enabled,
+        language: userData.preferences.language,
+      },
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    // Log but don't fail the signup if RabbitMQ is unavailable
+    bunLogger.error("Failed to publish user.created event", {
+      context: { error, userId: newUser.id },
+    });
+  }
+
   return {
     success: true,
     data: {
@@ -177,7 +198,6 @@ export const login_service = async (
     .set({ last_login: new Date() })
     .where(eq(users.id, user.id));
 
-  // Invalidate all existing refresh tokens for the user
   await db.delete(refreshTokens).where(eq(refreshTokens.user_id, user.id));
 
   const tokens = await generateTokens({
@@ -187,20 +207,32 @@ export const login_service = async (
     push_token: user.push_token,
   });
 
-  // Update revoked_at timestamp for the user to invalidate all previous access tokens.
-  // Set it to the iat of the newly generated token to ensure the new token is valid.
   await db
     .update(users)
     .set({ revoked_at: new Date(tokens.iat * 1000) })
     .where(eq(users.id, user.id));
 
-  // Fetch user preferences
   const userPrefs = await db
     .select()
     .from(userPreferences)
     .where(eq(userPreferences.user_id, user.id));
 
   const prefs = userPrefs[0];
+
+  // Publish user.logged_in event to RabbitMQ
+  try {
+    await rabbitMQService.publish("user-events", "user.logged_in", {
+      event: "user.logged_in",
+      userId: user.id,
+      email: user.email,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    // Log but don't fail the login if RabbitMQ is unavailable
+    bunLogger.error("Failed to publish user.logged_in event", {
+      context: { error, userId: user.id },
+    });
+  }
 
   return {
     success: true,
@@ -259,7 +291,6 @@ export const refresh_service = async (
       };
     }
 
-    // Invalidate old refresh token
     await db
       .delete(refreshTokens)
       .where(eq(refreshTokens.token_hash, storedToken.token_hash!));
@@ -284,14 +315,11 @@ export const refresh_service = async (
       push_token: user[0].push_token,
     });
 
-    // Update revoked_at timestamp for the user to invalidate all previous access tokens.
-    // Set it to the iat of the newly generated token to ensure the new token is valid.
     await db
       .update(users)
       .set({ revoked_at: new Date(tokens.iat * 1000) })
       .where(eq(users.id, user[0].id));
 
-    // Fetch user preferences
     const userPrefs = await db
       .select()
       .from(userPreferences)
@@ -349,7 +377,6 @@ export const validate_service = async (
       };
     }
 
-    // Check if the token was issued before the last revocation event
     if (user.revoked_at && decoded.iat * 1000 < user.revoked_at.getTime()) {
       return {
         success: false,
@@ -358,7 +385,6 @@ export const validate_service = async (
       };
     }
 
-    // Fetch user preferences
     const userPrefs = await db
       .select()
       .from(userPreferences)
@@ -366,7 +392,6 @@ export const validate_service = async (
 
     const prefs = userPrefs[0];
 
-    // Return minimal data in validate response
     return {
       success: true,
       data: {
@@ -390,7 +415,7 @@ export const validate_service = async (
           "notifications:read",
           "preferences:read",
           "preferences:update",
-        ], // Added permissions
+        ],
       },
       message: "Token is valid",
     };
@@ -438,7 +463,6 @@ export const logout_service = async (
 
     await db.delete(refreshTokens).where(eq(refreshTokens.user_id, user.id));
 
-    // Update revoked_at timestamp for the user to invalidate all previous access tokens
     await db
       .update(users)
       .set({ revoked_at: new Date() })
@@ -489,17 +513,29 @@ export const delete_service = async (
     }
 
     await db.transaction(async (tx) => {
-      // Delete user preferences
       await tx
         .delete(userPreferences)
         .where(eq(userPreferences.user_id, user.id));
 
-      // Delete refresh tokens
       await tx.delete(refreshTokens).where(eq(refreshTokens.user_id, user.id));
 
-      // Delete the user
       await tx.delete(users).where(eq(users.id, user.id));
     });
+
+    // Publish user.deleted event to RabbitMQ
+    try {
+      await rabbitMQService.publish("user-events", "user.deleted", {
+        event: "user.deleted",
+        userId: user.id,
+        email: user.email,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      // Log but don't fail the delete if RabbitMQ is unavailable
+      bunLogger.error("Failed to publish user.deleted event", {
+        context: { error, userId: user.id },
+      });
+    }
 
     return {
       success: true,
@@ -576,7 +612,6 @@ export const update_service = async (
       };
     }
 
-    // Update preferences if provided
     if (userData.preferences) {
       await db
         .update(userPreferences)
@@ -591,13 +626,51 @@ export const update_service = async (
         .where(eq(userPreferences.user_id, userId));
     }
 
-    // Fetch updated preferences
     const userPrefs = await db
       .select()
       .from(userPreferences)
       .where(eq(userPreferences.user_id, userId));
 
     const prefs = userPrefs[0];
+
+    // Publish user.updated event to RabbitMQ
+    try {
+      const eventPayload: any = {
+        event: "user.updated",
+        userId: updatedUser[0].id,
+        timestamp: new Date().toISOString(),
+        changes: {},
+      };
+
+      // Track what changed
+      if (userData.email) eventPayload.changes.email = updatedUser[0].email;
+      if (userData.name) eventPayload.changes.name = updatedUser[0].name;
+      if (userData.push_token)
+        eventPayload.changes.pushToken = updatedUser[0].push_token;
+      if (userData.password) eventPayload.changes.password = true;
+
+      if (userData.preferences) {
+        eventPayload.event = "user.preferences_updated";
+        eventPayload.changes.preferences = {
+          emailEnabled: prefs?.email_enabled,
+          pushEnabled: prefs?.push_enabled,
+          language: prefs?.language,
+          emailFrequency: prefs?.email_frequency,
+          pushFrequency: prefs?.push_frequency,
+        };
+      }
+
+      await rabbitMQService.publish(
+        "user-events",
+        userData.preferences ? "user.preferences_updated" : "user.updated",
+        eventPayload
+      );
+    } catch (error) {
+      // Log but don't fail the update if RabbitMQ is unavailable
+      bunLogger.error("Failed to publish user.updated event", {
+        context: { error, userId: updatedUser[0].id },
+      });
+    }
 
     return {
       success: true,

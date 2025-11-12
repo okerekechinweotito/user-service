@@ -4,13 +4,10 @@ import { requireAuth } from "../middleware/auth.middleware.ts";
 
 const authRoutes = new Hono();
 
-// Public routes
 authRoutes.post("/signup", ...authController.signup);
 authRoutes.post("/login", ...authController.login);
 authRoutes.post("/refresh", ...authController.refresh);
 authRoutes.post("/logout", ...authController.logout);
-
-// Protected routes
 authRoutes.post("/validate", requireAuth, ...authController.validate);
 authRoutes.delete("/delete", requireAuth, ...authController.delete_user);
 authRoutes.patch("/update", requireAuth, ...authController.update_user);

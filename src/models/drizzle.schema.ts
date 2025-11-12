@@ -24,7 +24,6 @@ export const users = pgTable("users", {
   updated_at: timestamp("updated_at").defaultNow().notNull(),
   revoked_at: timestamp("revoked_at"),
 });
-// User permissions table with boolean properties
 export const userPermissions = pgTable("user_permissions", {
   id: varchar("id").primaryKey(),
   user_id: varchar("user_id")
@@ -44,12 +43,12 @@ export const userPreferences = pgTable("user_preferences", {
   user_id: varchar("user_id")
     .references(() => users.id, { onDelete: "cascade" })
     .notNull()
-    .unique(), // One preference set per user
+    .unique(),
   email_enabled: boolean("email_enabled").default(true).notNull(),
   push_enabled: boolean("push_enabled").default(true).notNull(),
   language: varchar("language").default("en").notNull(),
-  email_frequency: integer("email_frequency").default(1440).notNull(), // minutes
-  push_frequency: integer("push_frequency").default(1440).notNull(), // minutes
+  email_frequency: integer("email_frequency").default(1440).notNull(),
+  push_frequency: integer("push_frequency").default(1440).notNull(),
   created_at: timestamp("created_at").defaultNow().notNull(),
   updated_at: timestamp("updated_at").defaultNow().notNull(),
 });
