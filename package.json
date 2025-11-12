@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@hono/zod-validator": "^0.7.4",
+    "@scalar/hono-api-reference": "^0.9.24",
     "amqplib": "^0.10.9",
     "drizzle-orm": "^0.44.7",
     "hono": "^4.10.4",

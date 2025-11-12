@@ -1,6 +1,6 @@
 # User Service
 
-User authentication and management service with role-based access control. Built with Hono.js, TypeScript, and PostgreSQL.
+User authentication and management service with role-based access control. Built with Bun runtime, Hono, and PostgreSQL.
 
 ## Architecture
 
@@ -39,16 +39,27 @@ graph LR
 
 **Start everything with one command:**
 
+(for background detached mode)
 ```sh
-docker-compose up
+docker-compose up -d
+```
+or 
+
+```sh
+docker-compose up 
 ```
 
 This starts:
 
-- PostgreSQL database
-- User Service API
+- PostgreSQL (port 5432)
+- User Service API (port 3000)
 
-Server will be available at http://localhost:3000
+ This command starts:
+
+- API: http://localhost:3000/api/v1
+- Health: http://localhost:3000/api/v1/health
+- Test Endpoints: ./test-endpoints.sh
+
 
 **Note:** RabbitMQ is optional and connects to an external instance in the notification system.
 
@@ -87,27 +98,14 @@ bun run db:migrate
 bun run db:push
 ```
 
-## API Endpoints
+## API Documentation
 
-### Authentication
+Interactive API documentation is available:
 
-- `POST /api/v1/auth/signup` - Register new user
-- `POST /api/v1/auth/login` - Login and get tokens
-- `POST /api/v1/auth/refresh` - Refresh access token
-- `POST /api/v1/auth/logout` - Logout
-- `POST /api/v1/auth/validate` - Validate token (protected)
+- **Scalar API Reference**: http://localhost:3000/api/v1/reference (Recommended - Modern UI)
+- **Swagger UI**: http://localhost:3000/api/v1/ui (Classic interface)
+- **OpenAPI Spec**: http://localhost:3000/api/v1/doc (Raw JSON)
 
-### User Management (Protected)
-
-- `GET /api/v1/auth/user` - Get user data
-- `PATCH /api/v1/auth/update` - Update profile
-- `DELETE /api/v1/auth/delete` - Delete account
-- `GET /api/v1/auth/user/preferences` - Get preferences
-- `GET /api/v1/auth/user/permissions` - Get permissions
-
-### System
-
-- `GET /api/v1/health` - Health check
 
 ## Environment Variables
 
@@ -132,7 +130,7 @@ cp .env.example .env
 - `NODE_ENV` - Application environment (default: development)
 - `PORT` - Server port (default: 3000)
 
-**Security Note:** Never commit `.env` to version control. Use `.env.example` as a template.
+
 
 ## Project Structure
 
@@ -149,31 +147,8 @@ src/
 └── utils/                # Logging & utilities
 ```
 
-## Docker Deployment
 
-### Quick Start
 
-```bash
-docker-compose up
-```
-
-This command starts:
-
-- ✅ PostgreSQL (port 5432)
-- ✅ User Service (port 3000)
-
-**Access Points:**
-
-- API: http://localhost:3000/api/v1
-- Health: http://localhost:3000/api/v1/health
-
-**Test Endpoints:**
-
-```bash
-./test-endpoints.sh
-```
-
-📖 **See [DOCKER.md](./DOCKER.md) for complete Docker guide**
 
 ## RabbitMQ Integration
 

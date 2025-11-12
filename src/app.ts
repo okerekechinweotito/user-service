@@ -1,10 +1,12 @@
 import { Hono } from "hono";
+import { swaggerUI } from "@hono/swagger-ui";
 import { cors } from "hono/cors";
 import { prettyJSON } from "hono/pretty-json";
 import { logger } from "hono/logger";
 import { bunLogger as customLogger } from "./utils/logger.ts";
 import healthRoutes from "./routes/health.route.ts";
 import authRoutes from "./routes/auth.route.ts";
+import { Scalar } from "@scalar/hono-api-reference";
 
 const app = new Hono().basePath("/api/v1");
 
@@ -43,5 +45,21 @@ app.get("/", (c) => {
 
 app.route("/health", healthRoutes);
 app.route("/auth", authRoutes);
+
+
+app.get("/doc", async (c) => {
+  const openapi = await Bun.file("./src/docs/openapi.json").json();
+  return c.json(openapi);
+});
+
+app.get("/ui", swaggerUI({ url: "/api/v1/doc" }));
+app.get(
+  "/reference",
+  Scalar({
+    url: "/api/v1/doc",
+    theme: "purple",
+    pageTitle: "User Service API",
+  })
+);
 
 export default app;
