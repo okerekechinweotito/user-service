@@ -1,6 +1,8 @@
 # User Service
 
-User authentication and management service with role-based access control. Built with Bun runtime, Hono, and PostgreSQL.
+User authentication and management service. Built with Bun runtime, Hono, and PostgreSQL.
+
+
 
 ## Architecture
 
@@ -25,7 +27,15 @@ graph LR
 - **User Service**: REST API handling authentication, user management, and event publishing
 - **PostgreSQL**: Persistent storage for users, preferences, and refresh tokens
 - **RabbitMQ**: Message broker for publishing user lifecycle events to other services
-- **API Gateway**: (Optional) Routes and proxies external requests to the User Service
+
+## 🚀 Live Deployment
+
+**Live API**: https://user-service-td0phq.fly.dev/api/v1/
+
+**API Documentation**:
+- **Scalar API Reference**: https://user-service-td0phq.fly.dev/api/v1/reference (Recommended - Modern UI)
+- **Swagger UI**: https://user-service-td0phq.fly.dev/api/v1/ui (Classic interface)
+- **OpenAPI Spec**: https://user-service-td0phq.fly.dev/api/v1/doc (Raw JSON)
 
 ## Features
 
@@ -63,6 +73,9 @@ This starts:
 - API: http://localhost:3000/api/v1
 - Health: http://localhost:3000/api/v1/health
 - Test Endpoints: ./test-endpoints.sh
+- Scalar API Reference: http://localhost:3000/api/v1/reference
+- Swagger UI: http://localhost:3000/api/v1/ui
+- OpenAPI Spec: http://localhost:3000/api/v1/doc
 
 
 **Note:** RabbitMQ is optional and connects to an external instance in the notification system.
@@ -102,13 +115,8 @@ bun run db:migrate
 bun run db:push
 ```
 
-## API Documentation
 
-Interactive API documentation is available:
 
-- **Scalar API Reference**: http://localhost:3000/api/v1/reference (Recommended - Modern UI)
-- **Swagger UI**: http://localhost:3000/api/v1/ui (Classic interface)
-- **OpenAPI Spec**: http://localhost:3000/api/v1/doc (Raw JSON)
 
 
 ## Environment Variables
