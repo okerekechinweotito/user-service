@@ -4,9 +4,9 @@ services:
     image: postgres:18-alpine
     container_name: user-service-db
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: userservice
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-userservice}
     ports:
       - "5432:5432"
     volumes:
@@ -29,23 +29,23 @@ services:
       - "3000:3000"
     environment:
       # Database connection
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/userservice
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/userservice}
 
       # RabbitMQ connection (connect to external/shared instance in notification system)
       RABBITMQ_HOST: ${RABBITMQ_HOST:-rabbitmq}
       RABBITMQ_PORT: ${RABBITMQ_PORT:-5672}
       RABBITMQ_USER: ${RABBITMQ_USER:-admin}
-      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-secretpassword}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
       RABBITMQ_VHOST: ${RABBITMQ_VHOST:-/}
-      RABBITMQ_URL: ${RABBITMQ_URL:-amqp://admin:secretpassword@rabbitmq:5672/%2F}
+      RABBITMQ_URL: ${RABBITMQ_URL}
 
       # Application settings
-      NODE_ENV: development
-      PORT: 3000
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: ${PORT:-3000}
 
-      # JWT Secret (change this in production!)
-      JWT_SECRET: your-super-secret-jwt-key-change-in-production
-      REFRESH_TOKEN_SECRET: ${REFRESH_TOKEN_SECRET:-your-super-secret-refresh-token-key}
+      # JWT Secrets
+      JWT_SECRET: ${JWT_SECRET}
+      REFRESH_TOKEN_SECRET: ${REFRESH_TOKEN_SECRET}
     depends_on:
       postgres:
         condition: service_healthy

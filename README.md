@@ -2,13 +2,34 @@
 
 User authentication and management service with role-based access control. Built with Hono.js, TypeScript, and PostgreSQL.
 
+## Architecture
+
+```mermaid
+graph LR
+    A[User Service<br/>Bun + Hono] --> B[(PostgreSQL<br/>Database)]
+    A --> C[RabbitMQ<br/>Message Queue]
+    
+    B -.->|Health Check| A
+    C -.->|Events| D[Notification System]
+    
+    style A fill:#4a90e2,stroke:#2e5c8a,stroke-width:2px,color:#fff
+    style B fill:#336791,stroke:#1a3a5c,stroke-width:2px,color:#fff
+    style C fill:#ff6600,stroke:#cc5200,stroke-width:2px,color:#fff
+    style D fill:#42b883,stroke:#2a7555,stroke-width:2px,color:#fff
+```
+
+**Components:**
+- **User Service**: REST API handling authentication, user management, and event publishing
+- **PostgreSQL**: Persistent storage for users, preferences, and refresh tokens
+- **RabbitMQ**: Message broker for publishing user lifecycle events to other services
+
 ## Features
 
 - 🔐 JWT-based authentication with refresh tokens
 - 👤 User registration, login, and profile management
-- 🔒 Role-based access control
-- 📊 Database health monitoring
-- 📚 **Interactive API documentation (Swagger UI)**
+- � User preferences and permissions management
+- 📊 Database and RabbitMQ health monitoring
+- � Event publishing to RabbitMQ for user lifecycle events
 - 🎯 Type-safe API with Zod validation
 - 🚀 Built on Bun.js runtime
 
@@ -17,16 +38,19 @@ User authentication and management service with role-based access control. Built
 ### Option 1: Docker (Recommended - Everything Included)
 
 **Start everything with one command:**
+
 ```sh
 docker-compose up
 ```
 
 This starts:
+
 - PostgreSQL database
-- RabbitMQ message queue  
 - User Service API
 
 Server will be available at http://localhost:3000
+
+**Note:** RabbitMQ is optional and connects to an external instance in the notification system.
 
 📖 **See [DOCKER.md](./DOCKER.md) for detailed Docker usage**
 
@@ -63,28 +87,10 @@ bun run db:migrate
 bun run db:push
 ```
 
-## API Documentation
-
-### Interactive Documentation (Swagger UI)
-**🎯 http://localhost:3000/api/v1/ui**
-
-Provides an interactive interface to:
-- Browse all endpoints
-- View request/response schemas
-- Test APIs directly in the browser
-- Authenticate and try protected endpoints
-
-### OpenAPI Specification
-**📄 http://localhost:3000/api/v1/doc**
-
-Raw OpenAPI 3.0 JSON specification for:
-- Importing into API clients (Postman, Insomnia)
-- Generating client SDKs
-- API testing automation
-
 ## API Endpoints
 
 ### Authentication
+
 - `POST /api/v1/auth/signup` - Register new user
 - `POST /api/v1/auth/login` - Login and get tokens
 - `POST /api/v1/auth/refresh` - Refresh access token
@@ -92,6 +98,7 @@ Raw OpenAPI 3.0 JSON specification for:
 - `POST /api/v1/auth/validate` - Validate token (protected)
 
 ### User Management (Protected)
+
 - `GET /api/v1/auth/user` - Get user data
 - `PATCH /api/v1/auth/update` - Update profile
 - `DELETE /api/v1/auth/delete` - Delete account
@@ -99,15 +106,33 @@ Raw OpenAPI 3.0 JSON specification for:
 - `GET /api/v1/auth/user/permissions` - Get permissions
 
 ### System
+
 - `GET /api/v1/health` - Health check
 
 ## Environment Variables
 
-Create a `.env` file:
+Copy the example file and update with your credentials:
 
-```env
-DATABASE_URL=postgresql://user:password@localhost:5432/dbname
+```bash
+cp .env.example .env
 ```
+
+**Required variables:**
+
+- `DATABASE_URL` - PostgreSQL connection string
+- `POSTGRES_USER` - PostgreSQL username
+- `POSTGRES_PASSWORD` - PostgreSQL password
+- `POSTGRES_DB` - PostgreSQL database name
+- `JWT_SECRET` - Secret key for access tokens (generate with `openssl rand -base64 32`)
+- `REFRESH_TOKEN_SECRET` - Secret key for refresh tokens
+
+**Optional variables:**
+
+- `RABBITMQ_URL` - RabbitMQ connection URL (for event publishing)
+- `NODE_ENV` - Application environment (default: development)
+- `PORT` - Server port (default: 3000)
+
+**Security Note:** Never commit `.env` to version control. Use `.env.example` as a template.
 
 ## Project Structure
 
@@ -127,21 +152,23 @@ src/
 ## Docker Deployment
 
 ### Quick Start
+
 ```bash
 docker-compose up
 ```
 
 This command starts:
+
 - ✅ PostgreSQL (port 5432)
-- ✅ RabbitMQ (ports 5672, 15672)  
 - ✅ User Service (port 3000)
 
 **Access Points:**
+
 - API: http://localhost:3000/api/v1
-- Swagger UI: http://localhost:3000/api/v1/ui
-- RabbitMQ Management: http://localhost:15672 (admin/admin)
+- Health: http://localhost:3000/api/v1/health
 
 **Test Endpoints:**
+
 ```bash
 ./test-endpoints.sh
 ```
@@ -156,13 +183,13 @@ The user-service publishes events to RabbitMQ for user lifecycle tracking.
 
 All events are published to the **`user-events`** exchange (type: `topic`):
 
-| Event | Routing Key | Trigger |
-|-------|-------------|---------|
-| User Created | `user.created` | User registers |
-| User Logged In | `user.logged_in` | User logs in |
-| User Updated | `user.updated` | Profile modified |
+| Event               | Routing Key                | Trigger             |
+| ------------------- | -------------------------- | ------------------- |
+| User Created        | `user.created`             | User registers      |
+| User Logged In      | `user.logged_in`           | User logs in        |
+| User Updated        | `user.updated`             | Profile modified    |
 | Preferences Updated | `user.preferences_updated` | Preferences changed |
-| User Deleted | `user.deleted` | Account deleted |
+| User Deleted        | `user.deleted`             | Account deleted     |
 
 ### Configuration
 
@@ -176,7 +203,7 @@ To connect to an external RabbitMQ network, uncomment the network configuration 
 
 ```yaml
 networks:
-  - notification-system-network  # Uncomment this line
+  - notification-system-network # Uncomment this line
 ```
 
 ### Event Schema Example
@@ -200,7 +227,3 @@ curl http://localhost:3000/api/v1/health | jq .rabbitmq
 ```
 
 **Note**: Events use a fire-and-forget pattern. If RabbitMQ is unavailable, events are logged as errors but user operations still succeed.
-
-## Documentation
-
-For detailed API documentation, see [src/docs/README.md](src/docs/README.md)
