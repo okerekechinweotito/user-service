@@ -81,6 +81,10 @@ export const usersRelations = relations(users, ({ many, one }) => ({
     fields: [users.id],
     references: [userPreferences.user_id],
   }),
+  permissions: one(userPermissions, {
+    fields: [users.id],
+    references: [userPermissions.user_id],
+  }),
   push_tokens: many(pushTokens),
   refresh_tokens: many(refreshTokens),
 }));
