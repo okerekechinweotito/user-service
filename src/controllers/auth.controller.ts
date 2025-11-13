@@ -344,3 +344,32 @@ export const get_user_permissions = factory.createHandlers(async (c) => {
     return c.json({ status: 500, message: "Something went wrong" }, 500);
   }
 });
+
+export const get_user_by_id = factory.createHandlers(async (c) => {
+  try {
+    const userId = c.req.param("userId");
+    
+    if (!userId) {
+      return c.json(
+        {
+          success: false,
+          error: "MISSING_USER_ID",
+          message: "User ID is required",
+        },
+        400
+      );
+    }
+
+    const { get_user_by_id_service } = await import("../services/user.service");
+    const response = await get_user_by_id_service(userId);
+
+    if (!response.success) {
+      return c.json(response, 404);
+    }
+
+    return c.json(response);
+  } catch (error) {
+    customLogger.error("get_user_by_id error", { context: { error } });
+    return c.json({ status: 500, message: "Something went wrong" }, 500);
+  }
+});

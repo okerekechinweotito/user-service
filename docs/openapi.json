@@ -21,6 +21,12 @@
         "type": "http",
         "scheme": "bearer",
         "bearerFormat": "JWT"
+      },
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-api-key",
+        "description": "API key for service-to-service authentication"
       }
     },
     "schemas": {
@@ -40,6 +46,19 @@
           "email_frequency",
           "push_frequency"
         ]
+      },
+      "UserPermissions": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "user_id": { "type": "string" },
+          "read": { "type": "boolean" },
+          "write": { "type": "boolean" },
+          "update": { "type": "boolean" },
+          "delete": { "type": "boolean" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" }
+        }
       },
       "ErrorResponse": {
         "type": "object",
@@ -507,8 +526,8 @@
     "/auth/user": {
       "get": {
         "tags": ["User Management"],
-        "summary": "Get user data",
-        "description": "Retrieve authenticated user's profile information",
+        "summary": "Get authenticated user data",
+        "description": "Retrieve authenticated user's profile information using JWT token",
         "security": [{ "bearerAuth": [] }],
         "responses": {
           "200": {
@@ -549,6 +568,108 @@
           },
           "401": {
             "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/user/{userId}": {
+      "get": {
+        "tags": ["User Management"],
+        "summary": "Get user by ID (service-to-service)",
+        "description": "Retrieve complete user profile including preferences and permissions using API key authentication. For service-to-service communication.",
+        "security": [{ "apiKeyAuth": [] }],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "description": "The unique identifier of the user",
+            "schema": {
+              "type": "string",
+              "example": "user_1234567890"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User data retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": { "type": "string" },
+                        "email": { "type": "string" },
+                        "name": { "type": "string" },
+                        "push_token": { "type": "string", "nullable": true },
+                        "last_login": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true
+                        },
+                        "created_at": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "updated_at": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "preferences": {
+                          "oneOf": [
+                            { "$ref": "#/components/schemas/UserPreferences" },
+                            { "type": "null" }
+                          ]
+                        },
+                        "permissions": {
+                          "oneOf": [
+                            { "$ref": "#/components/schemas/UserPermissions" },
+                            { "type": "null" }
+                          ]
+                        }
+                      }
+                    },
+                    "message": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - Missing user ID",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Missing API key",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Invalid API key",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found",
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/ErrorResponse" }

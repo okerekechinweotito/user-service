@@ -144,6 +144,90 @@ cp .env.example .env
 
 
 
+## API Endpoints
+
+### Authentication
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | `/auth/signup` | None | Register new user |
+| POST | `/auth/login` | None | Login user |
+| POST | `/auth/refresh` | None | Refresh access token |
+| POST | `/auth/logout` | JWT | Logout user |
+| POST | `/auth/validate` | JWT | Validate access token |
+
+### User Management
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/auth/user` | JWT (Bearer) | Get authenticated user's data |
+| GET | `/auth/user/{userId}` | API Key (`x-api-key`) | Get user by ID with full details (service-to-service) |
+| GET | `/auth/user/preferences` | JWT (Bearer) | Get user preferences |
+| GET | `/auth/user/permissions` | JWT (Bearer) | Get user permissions |
+| PATCH | `/auth/update` | JWT (Bearer) | Update user profile |
+| DELETE | `/auth/delete` | JWT (Bearer) | Delete user account |
+
+### Health Check
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/health` | None | Service health status |
+
+### Authentication Methods
+
+**JWT Bearer Token** - For user-facing endpoints:
+```bash
+Authorization: Bearer <access_token>
+```
+
+**API Key** - For service-to-service communication:
+```bash
+x-api-key: <your_api_key>
+```
+
+Set `X_API_KEY` in your environment variables for API key authentication.
+
+### Example: Get User by ID (Service-to-Service)
+
+```bash
+curl -X GET http://localhost:3000/api/v1/auth/user/user_1234567890 \
+  -H "x-api-key: your_api_key_here"
+```
+
+Response includes complete user profile with preferences and permissions:
+```json
+{
+  "success": true,
+  "data": {
+    "id": "user_1234567890",
+    "email": "user@example.com",
+    "name": "John Doe",
+    "push_token": null,
+    "last_login": "2025-11-14T00:00:00.000Z",
+    "created_at": "2025-11-01T00:00:00.000Z",
+    "updated_at": "2025-11-14T00:00:00.000Z",
+    "preferences": {
+      "id": "pref_1234567890",
+      "user_id": "user_1234567890",
+      "email_enabled": true,
+      "push_enabled": true,
+      "language": "en",
+      "email_frequency": 1440,
+      "push_frequency": 1440
+    },
+    "permissions": {
+      "id": "perm_1234567890",
+      "user_id": "user_1234567890",
+      "read": true,
+      "write": true,
+      "update": true,
+      "delete": false
+    }
+  },
+  "message": "User data retrieved successfully"
+}
+```
+
 ## Project Structure
 
 ```

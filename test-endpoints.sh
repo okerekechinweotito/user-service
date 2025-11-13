@@ -88,6 +88,24 @@ else
 fi
 echo ""
 
+# Test 6: Get User by ID (API Key)
+echo -e "${YELLOW}6. Testing Get User by ID (API Key)...${NC}"
+# Note: This test will fail if no user exists or API key is incorrect
+# You can extract a user ID from Test 5 response to test properly
+USER_BY_ID_RESPONSE=$(curl -s -w "\n%{http_code}" -X GET $BASE_URL/auth/user/user_test_id \
+  -H "x-api-key: apk_apikey")
+HTTP_CODE=$(echo "$USER_BY_ID_RESPONSE" | tail -n 1)
+if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "404" ]; then
+    echo -e "${GREEN}✓ Get user by ID endpoint accessible (HTTP $HTTP_CODE)${NC}"
+    if [ "$HTTP_CODE" = "404" ]; then
+        echo -e "${YELLOW}  (User not found - provide a valid user ID to test fully)${NC}"
+    fi
+else
+    echo -e "${RED}✗ Get user by ID failed (HTTP $HTTP_CODE)${NC}"
+    echo "$USER_BY_ID_RESPONSE" | head -n -1
+fi
+echo ""
+
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo -e "${GREEN}✅ All tests completed!${NC}"
 echo ""

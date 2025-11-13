@@ -699,3 +699,46 @@ export const update_service = async (
     };
   }
 };
+
+export const get_user_by_id_service = async (userId: string) => {
+  try {
+    const userWithDetails = await db.query.users.findFirst({
+      where: eq(users.id, userId),
+      with: {
+        preferences: true,
+        permissions: true,
+      },
+    });
+
+    if (!userWithDetails) {
+      return {
+        success: false,
+        error: "USER_NOT_FOUND",
+        message: "User not found",
+      };
+    }
+
+    return {
+      success: true,
+      data: {
+        id: userWithDetails.id,
+        email: userWithDetails.email,
+        name: userWithDetails.name,
+        push_token: userWithDetails.push_token,
+        last_login: userWithDetails.last_login,
+        created_at: userWithDetails.created_at,
+        updated_at: userWithDetails.updated_at,
+        preferences: userWithDetails.preferences,
+        permissions: userWithDetails.permissions,
+      },
+      message: "User data retrieved successfully",
+    };
+  } catch (error) {
+    bunLogger.error("get_user_by_id_service error", { context: { error, userId } });
+    return {
+      success: false,
+      error: "SERVER_ERROR",
+      message: "An error occurred while fetching user data",
+    };
+  }
+};
