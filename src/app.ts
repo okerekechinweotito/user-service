@@ -38,7 +38,7 @@ app.get("/", (c) => {
   return c.json(
     {
       status: "ok",
-      message: "Welcome to the Notifications API",
+      message: "Welcome to the User Service API",
       docs: {
         scalar: `${baseUrl}/api/v1/reference`,
         swagger: `${baseUrl}/api/v1/ui`,
