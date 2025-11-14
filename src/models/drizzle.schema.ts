@@ -7,6 +7,7 @@ import {
   jsonb,
   pgEnum,
   integer,
+  uuid,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
@@ -14,7 +15,7 @@ export const channelEnum = pgEnum("channel", ["email", "push", "sms"]);
 export const platformEnum = pgEnum("platform", ["ios", "android", "web"]);
 
 export const users = pgTable("users", {
-  id: varchar("id").primaryKey(),
+  id: uuid("id").primaryKey().defaultRandom(),
   email: varchar("email").unique().notNull(),
   password_hash: text("password_hash").notNull(),
   name: text("name").notNull(),
@@ -25,8 +26,8 @@ export const users = pgTable("users", {
   revoked_at: timestamp("revoked_at"),
 });
 export const userPermissions = pgTable("user_permissions", {
-  id: varchar("id").primaryKey(),
-  user_id: varchar("user_id")
+  id: uuid("id").primaryKey().defaultRandom(),
+  user_id: uuid("user_id")
     .references(() => users.id, { onDelete: "cascade" })
     .notNull()
     .unique(),
@@ -39,8 +40,8 @@ export const userPermissions = pgTable("user_permissions", {
 });
 
 export const userPreferences = pgTable("user_preferences", {
-  id: varchar("id").primaryKey(),
-  user_id: varchar("user_id")
+  id: uuid("id").primaryKey().defaultRandom(),
+  user_id: uuid("user_id")
     .references(() => users.id, { onDelete: "cascade" })
     .notNull()
     .unique(),
@@ -54,8 +55,8 @@ export const userPreferences = pgTable("user_preferences", {
 });
 
 export const pushTokens = pgTable("push_tokens", {
-  id: varchar("id").primaryKey(),
-  user_id: varchar("user_id").references(() => users.id, {
+  id: uuid("id").primaryKey().defaultRandom(),
+  user_id: uuid("user_id").references(() => users.id, {
     onDelete: "cascade",
   }),
   device_token: text("device_token"),
@@ -67,8 +68,8 @@ export const pushTokens = pgTable("push_tokens", {
 });
 
 export const refreshTokens = pgTable("refresh_tokens", {
-  id: varchar("id").primaryKey(),
-  user_id: varchar("user_id").references(() => users.id, {
+  id: uuid("id").primaryKey().defaultRandom(),
+  user_id: uuid("user_id").references(() => users.id, {
     onDelete: "cascade",
   }),
   token_hash: text("token_hash"),

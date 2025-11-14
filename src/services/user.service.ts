@@ -47,7 +47,6 @@ const generateTokens = async (user: UserPayload): Promise<AuthTokens> => {
 
   const refreshTokenHash = await Bun.password.hash(refreshToken);
   await db.insert(refreshTokens).values({
-    id: `rft_${new Date().getTime()}`,
     user_id: user.user_id,
     token_hash: refreshTokenHash,
     expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
@@ -86,7 +85,6 @@ export const signup_service = async (
     const insertedUser = await tx
       .insert(users)
       .values({
-        id: `user_${new Date().getTime()}`,
         email,
         password_hash: passwordHash,
         name,
@@ -95,7 +93,6 @@ export const signup_service = async (
       .returning();
 
     const preferences: NewUserPreference = {
-      id: `pref_${new Date().getTime()}`,
       user_id: insertedUser[0]!.id,
       email_enabled: userData.preferences.email_enabled,
       push_enabled: userData.preferences.push_enabled,
@@ -734,7 +731,9 @@ export const get_user_by_id_service = async (userId: string) => {
       message: "User data retrieved successfully",
     };
   } catch (error) {
-    bunLogger.error("get_user_by_id_service error", { context: { error, userId } });
+    bunLogger.error("get_user_by_id_service error", {
+      context: { error, userId },
+    });
     return {
       success: false,
       error: "SERVER_ERROR",
