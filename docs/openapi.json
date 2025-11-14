@@ -7,7 +7,7 @@
   },
   "servers": [
     {
-      "url": "https://user-service-td0phq.fly.dev/api/v1",
+      "url": "https://user-service-live.up.railway.app/api/v1",
       "description": "Production server"
     },
     {

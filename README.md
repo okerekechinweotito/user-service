@@ -30,12 +30,12 @@ graph LR
 
 ## 🚀 Live Deployment
 
-**Live API**: https://user-service-td0phq.fly.dev/api/v1
+**Live API**: https://user-service-live.up.railway.app/api/v1
 
 **API Documentation**:
-- **Scalar API Reference**: https://user-service-td0phq.fly.dev/api/v1/reference (Recommended - Modern UI)
-- **Swagger UI**: https://user-service-td0phq.fly.dev/api/v1/ui (Classic interface)
-- **OpenAPI Spec**: https://user-service-td0phq.fly.dev/api/v1/doc (Raw JSON)
+- **Scalar API Reference**: https://user-service-live.up.railway.app/api/v1/reference (Recommended - Modern UI)
+- **Swagger UI**: https://user-service-live.up.railway.app/api/v1/ui (Classic interface)
+- **OpenAPI Spec**: https://user-service-live.up.railway.app/api/v1/doc (Raw JSON)
 
 ## Features
 
